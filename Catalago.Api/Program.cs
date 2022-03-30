@@ -27,9 +27,22 @@ var app = builder.Build();
 //get
 app.MapGet("/categorias", async (OlifransDbContext dbContext) => await dbContext.Categorias.ToListAsync());
 
+////get id
+//app.MapGet("/categorias/{id}", async (int id, OlifransDbContext dbContext) =>
+//    await dbContext.Categorias.FirstOrDefaultAsync(a => a.CategoriaId == id));
+
+
 //get id
-app.MapGet("/categorias/{id}", async (int id, OlifransDbContext dbContext) =>
-    await dbContext.Categorias.FirstOrDefaultAsync(a => a.CategoriaId == id));
+app.MapGet("/categorias/{id:int}", async (int id, OlifransDbContext dbContext) =>
+{
+    return await dbContext.Categorias.FindAsync(id)
+    is Categoria categoria
+                ? Results.Ok(categoria) : Results.NotFound();
+});
+
+    
+
+
 
 //post
 app.MapPost("/categorias", async (Categoria categoria, OlifransDbContext dbContext) =>
