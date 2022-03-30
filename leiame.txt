@@ -1,0 +1,6 @@
+
+Comandos: Migrations a database
+
+dotnet ef migrations add MigracaoInicial
+
+dotnet ef database update MigracaoInicial
