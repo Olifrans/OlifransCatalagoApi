@@ -95,7 +95,6 @@ app.MapPut("/categorias/{id:int}", async (int id, Categoria categoria, OlifransD
 //    return;
 //});
 
-
 //delete
 app.MapDelete("/categorias/{id:int}", async (int id, OlifransDbContext dbContext) =>
 {
@@ -116,14 +115,35 @@ app.MapDelete("/categorias/{id:int}", async (int id, OlifransDbContext dbContext
 
 
 
+
+
+
+
+
+
+
 //Endpoints Produtos
 //get
 app.MapGet("/produtos", async (OlifransDbContext dbContext) =>
     await dbContext.Produtos.ToListAsync());
 
+
+
+////get id
+//app.MapGet("/produtos/{id}", async (int id, OlifransDbContext dbContext) =>
+//    await dbContext.Produtos.FirstOrDefaultAsync(a => a.ProdutoId == id));
+
 //get id
-app.MapGet("/produtos/{id}", async (int id, OlifransDbContext dbContext) =>
-    await dbContext.Produtos.FirstOrDefaultAsync(a => a.ProdutoId == id));
+app.MapGet("/produtos/{id:int}", async (int id, OlifransDbContext dbContext) =>
+{
+    return await dbContext.Produtos.FindAsync(id)
+    is Produto produto
+                ? Results.Ok(produto) : Results.NotFound();
+});
+
+
+
+
 
 //post
 app.MapPost("/produtos", async (Produto produto, OlifransDbContext dbContext) =>
@@ -133,26 +153,67 @@ app.MapPost("/produtos", async (Produto produto, OlifransDbContext dbContext) =>
     return Results.Created($"/categoria/{produto.ProdutoId}", produto);
 });
 
+
+
+
+////put
+//app.MapPut("/produtos/{id}", async (int id, Produto produto,
+//    OlifransDbContext dbContext) =>
+//{
+//    dbContext.Entry(produto).State = EntityState.Modified;
+//    await dbContext.SaveChangesAsync();
+//    return produto;
+//});
+
 //put
-app.MapPut("/produtos/{id}", async (int id, Produto produto,
-    OlifransDbContext dbContext) =>
+app.MapPut("/produtos/{id:int}", async (int id, Produto produto, OlifransDbContext dbContext) =>
 {
-    dbContext.Entry(produto).State = EntityState.Modified;
+    if (produto.ProdutoId != id)
+    {
+        return Results.BadRequest();
+    }
+    var produtoDoBD = await dbContext.Produtos.FindAsync(id);
+    if (produtoDoBD is null) return Results.NotFound();
+
+    produtoDoBD.Nome = produto.Nome;
+    produtoDoBD.Descricao = produto.Descricao;
+
     await dbContext.SaveChangesAsync();
-    return produto;
+    return Results.Ok(produtoDoBD);
 });
 
+
+
+
+
+
+
+
+
+////delete
+//app.MapDelete("/produtos/{id}", async (int id, OlifransDbContext dbContext) =>
+//{
+//    var produto = await dbContext.Produtos.FirstOrDefaultAsync(a => a.ProdutoId == id);
+//    if (produto != null)
+//    {
+//        dbContext.Produtos.Remove(produto);
+//        await dbContext.SaveChangesAsync();
+//    }
+//    return;
+//});
+
 //delete
-app.MapDelete("/produtos/{id}", async (int id, OlifransDbContext dbContext) =>
+app.MapDelete("/produtos/{id:int}", async (int id, OlifransDbContext dbContext) =>
 {
-    var produto = await dbContext.Produtos.FirstOrDefaultAsync(a => a.ProdutoId == id);
+    var produto = await dbContext.Produtos.FindAsync(id);
     if (produto != null)
-    {
-        dbContext.Produtos.Remove(produto);
-        await dbContext.SaveChangesAsync();
-    }
-    return;
+        return Results.NotFound();
+
+    dbContext.Produtos.Remove(produto);
+    await dbContext.SaveChangesAsync();
+    return Results.NoContent();
 });
+
 
 
 
