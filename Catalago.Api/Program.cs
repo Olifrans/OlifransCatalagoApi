@@ -39,10 +39,7 @@ app.MapGet("/categorias/{id:int}", async (int id, OlifransDbContext dbContext) =
     is Categoria categoria
                 ? Results.Ok(categoria) : Results.NotFound();
 });
-
-    
-
-
+ 
 
 //post
 app.MapPost("/categorias", async (Categoria categoria, OlifransDbContext dbContext) =>
@@ -52,14 +49,42 @@ app.MapPost("/categorias", async (Categoria categoria, OlifransDbContext dbConte
     return Results.Created($"/categoria/{categoria.CategoriaId}", categoria);
 });
 
+
+
+
+
+////put
+//app.MapPut("/categorias/{id}", async (int id, Categoria categoria,
+//    OlifransDbContext dbContext) =>
+//{
+//    dbContext.Entry(categoria).State = EntityState.Modified;
+//    await dbContext.SaveChangesAsync();
+//    return categoria;
+//});
+
+
 //put
-app.MapPut("/categorias/{id}", async (int id, Categoria categoria,
-    OlifransDbContext dbContext) =>
+app.MapPut("/categorias/{id:int}", async (int id, Categoria categoria, OlifransDbContext dbContext) =>
 {
-    dbContext.Entry(categoria).State = EntityState.Modified;
+    if (categoria.CategoriaId != id)
+    {
+        return Results.BadRequest();
+    }
+    var categoriaDoBD = await dbContext.Categorias.FindAsync(id);
+    if(categoriaDoBD is null) return Results.NotFound();
+
+    categoriaDoBD.Nome = categoria.Nome;
+    categoriaDoBD.Descricao = categoria.Descricao;
+
     await dbContext.SaveChangesAsync();
-    return categoria;
+    return Results.Ok(categoriaDoBD);
 });
+
+
+
+
+
+
 
 //delete
 app.MapDelete("/categorias/{id}", async (int id, OlifransDbContext dbContext) =>
