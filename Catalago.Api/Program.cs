@@ -23,9 +23,25 @@ builder.Services.AddDbContext<OlifransDbContext>(options => options.UseNpgsql(Co
 var app = builder.Build();
 
 
+
+
+
+
+
+
+
+/*
+ * Continua curso 
+ * https://www.youtube.com/watch?v=EF7ZHxBi_08&list=PLJ4k1IC8GhW0GuisO9DvYTkyf99BI9ZZr&index=4
+ * posicao 14:20
+ * */
+
+
+
 //Endpoints Categorias
 //get
-app.MapGet("/categorias", async (OlifransDbContext dbContext) => await dbContext.Categorias.ToListAsync());
+app.MapGet("/categorias", async (OlifransDbContext dbContext) => await dbContext.Categorias.ToListAsync())
+    .WithTags("Categorias");
 
 ////get id
 //app.MapGet("/categorias/{id}", async (int id, OlifransDbContext dbContext) =>
@@ -38,8 +54,8 @@ app.MapGet("/categorias/{id:int}", async (int id, OlifransDbContext dbContext) =
     return await dbContext.Categorias.FindAsync(id)
     is Categoria categoria
                 ? Results.Ok(categoria) : Results.NotFound();
-});
- 
+}).WithTags("Categorias");
+
 
 //post
 app.MapPost("/categorias", async (Categoria categoria, OlifransDbContext dbContext) =>
@@ -47,20 +63,8 @@ app.MapPost("/categorias", async (Categoria categoria, OlifransDbContext dbConte
     dbContext.Categorias.Add(categoria);
     await dbContext.SaveChangesAsync();
     return Results.Created($"/categoria/{categoria.CategoriaId}", categoria);
-});
+}).WithTags("Categorias");
 
-
-
-
-
-////put
-//app.MapPut("/categorias/{id}", async (int id, Categoria categoria,
-//    OlifransDbContext dbContext) =>
-//{
-//    dbContext.Entry(categoria).State = EntityState.Modified;
-//    await dbContext.SaveChangesAsync();
-//    return categoria;
-//});
 
 
 //put
@@ -71,42 +75,28 @@ app.MapPut("/categorias/{id:int}", async (int id, Categoria categoria, OlifransD
         return Results.BadRequest();
     }
     var categoriaDoBD = await dbContext.Categorias.FindAsync(id);
-    if(categoriaDoBD is null) return Results.NotFound();
+    if (categoriaDoBD is null) return Results.NotFound();
 
     categoriaDoBD.Nome = categoria.Nome;
     categoriaDoBD.Descricao = categoria.Descricao;
 
     await dbContext.SaveChangesAsync();
     return Results.Ok(categoriaDoBD);
-});
+}).WithTags("Categorias");
 
-
-
-
-////delete
-//app.MapDelete("/categorias/{id}", async (int id, OlifransDbContext dbContext) =>
-//{
-//    var categoria = await dbContext.Categorias.FirstOrDefaultAsync(a => a.CategoriaId == id);
-//    if (categoria != null)
-//    {
-//        dbContext.Categorias.Remove(categoria);
-//        await dbContext.SaveChangesAsync();
-//    }
-//    return;
-//});
 
 //delete
 app.MapDelete("/categorias/{id:int}", async (int id, OlifransDbContext dbContext) =>
 {
     var categoria = await dbContext.Categorias.FindAsync(id);
 
-    if (categoria != null) 
+    if (categoria != null)
         return Results.NotFound();
 
     dbContext.Categorias.Remove(categoria);
     await dbContext.SaveChangesAsync();
     return Results.NoContent();
-});
+}).WithTags("Categorias");
 
 
 
@@ -122,27 +112,28 @@ app.MapDelete("/categorias/{id:int}", async (int id, OlifransDbContext dbContext
 
 
 
-//Endpoints Produtos
+
+
+
+//---------------------Endpoints Produtos
 //get
 app.MapGet("/produtos", async (OlifransDbContext dbContext) =>
-    await dbContext.Produtos.ToListAsync());
+    await dbContext.Produtos.ToListAsync())
+    .Produces<Produto>(StatusCodes.Status200OK)
+    .WithTags("Produtos");
 
-
-
-////get id
-//app.MapGet("/produtos/{id}", async (int id, OlifransDbContext dbContext) =>
-//    await dbContext.Produtos.FirstOrDefaultAsync(a => a.ProdutoId == id));
 
 //get id
 app.MapGet("/produtos/{id:int}", async (int id, OlifransDbContext dbContext) =>
 {
     return await dbContext.Produtos.FindAsync(id)
     is Produto produto
-                ? Results.Ok(produto) : Results.NotFound();
-});
-
-
-
+    ? Results.Ok(produto)
+    : Results.NotFound("Produto não encontrado");
+})
+    .Produces<Produto>(StatusCodes.Status201Created)
+    .Produces(StatusCodes.Status404NotFound)
+    .WithTags("Produtos");
 
 
 //post
@@ -150,72 +141,76 @@ app.MapPost("/produtos", async (Produto produto, OlifransDbContext dbContext) =>
 {
     dbContext.Produtos.Add(produto);
     await dbContext.SaveChangesAsync();
-    return Results.Created($"/categoria/{produto.ProdutoId}", produto);
-});
+    return Results.Created($"/produtos/{produto.ProdutoId}", produto);
+})
+    .Produces<Produto>(StatusCodes.Status201Created)
+    .WithName("CriarNovoProduto")
+    .WithTags("Produtos");
 
 
-
-
-////put
-//app.MapPut("/produtos/{id}", async (int id, Produto produto,
-//    OlifransDbContext dbContext) =>
-//{
-//    dbContext.Entry(produto).State = EntityState.Modified;
-//    await dbContext.SaveChangesAsync();
-//    return produto;
-//});
-
-//put
-app.MapPut("/produtos/{id:int}", async (int id, Produto produto, OlifransDbContext dbContext) =>
+//put pelo nome
+app.MapPut("/produtos", async (int produtoId, string produtoNome, OlifransDbContext dbContext) =>
 {
-    if (produto.ProdutoId != id)
-    {
-        return Results.BadRequest();
-    }
-    var produtoDoBD = await dbContext.Produtos.FindAsync(id);
-    if (produtoDoBD is null) return Results.NotFound();
+    var produtoDoBD = dbContext.Produtos.SingleOrDefault(p => p.ProdutoId == produtoId);
+    if (produtoDoBD == null) return Results.NotFound("Produto não encontrado");
 
-    produtoDoBD.Nome = produto.Nome;
-    produtoDoBD.Descricao = produto.Descricao;
+    produtoDoBD.Nome = produtoNome;
 
     await dbContext.SaveChangesAsync();
     return Results.Ok(produtoDoBD);
-});
+})
+    .Produces<Produto>(StatusCodes.Status200OK)
+    .Produces(StatusCodes.Status404NotFound)
+    .WithName("AtualiazarNomeProduto")
+    .WithTags("Produtos");
 
 
+//put todos dados
+app.MapPut("/produtos/{id:int}", async (int id, Produto produto, OlifransDbContext dbContext) =>
+{   
+    if (produto.ProdutoId != id)
+    {
+        return Results.BadRequest("Os Id do produto não confere");
+    }
+
+    var produtoDoBD = await dbContext.Produtos.FindAsync(id);
+    if (produtoDoBD is null) return Results.NotFound("Produto não encontrado");
+
+    produtoDoBD.Nome = produto.Nome;
+    produtoDoBD.Descricao = produto.Descricao;
+    produtoDoBD.Preco = produto.Preco;
+    produtoDoBD.DataCompra = produto.DataCompra;
+    produtoDoBD.Estoque = produto.Estoque;
+    produtoDoBD.Imagem = produto.Imagem;
+    produtoDoBD.CategoriaId = produto.CategoriaId;
+
+    await dbContext.SaveChangesAsync();
+    return Results.Ok(produtoDoBD);
+})
+    .Produces<Produto>(StatusCodes.Status200OK)
+    .Produces(StatusCodes.Status400BadRequest)
+    .Produces(StatusCodes.Status404NotFound)
+    .WithName("AtualiazarProduto")
+    .WithTags("Produtos");
 
 
-
-
-
-
-
-////delete
-//app.MapDelete("/produtos/{id}", async (int id, OlifransDbContext dbContext) =>
-//{
-//    var produto = await dbContext.Produtos.FirstOrDefaultAsync(a => a.ProdutoId == id);
-//    if (produto != null)
-//    {
-//        dbContext.Produtos.Remove(produto);
-//        await dbContext.SaveChangesAsync();
-//    }
-//    return;
-//});
 
 //delete
 app.MapDelete("/produtos/{id:int}", async (int id, OlifransDbContext dbContext) =>
 {
-    var produto = await dbContext.Produtos.FindAsync(id);
-    if (produto != null)
-        return Results.NotFound();
-
-    dbContext.Produtos.Remove(produto);
+    var produtoDB = await dbContext.Produtos.FindAsync(id);
+    if (produtoDB != null)
+    {
+        return Results.NotFound("Produto não encontrado");
+    } 
+    dbContext.Produtos.Remove(produtoDB);
     await dbContext.SaveChangesAsync();
-    return Results.NoContent();
-});
-
-
-
+    return Results.Ok(produtoDB);
+})
+    .Produces<Produto>(StatusCodes.Status200OK)
+    .Produces(StatusCodes.Status404NotFound)
+    .WithName("DeletaProduto")
+    .WithTags("Produtos");
 
 
 
