@@ -83,20 +83,33 @@ app.MapPut("/categorias/{id:int}", async (int id, Categoria categoria, OlifransD
 
 
 
-
+////delete
+//app.MapDelete("/categorias/{id}", async (int id, OlifransDbContext dbContext) =>
+//{
+//    var categoria = await dbContext.Categorias.FirstOrDefaultAsync(a => a.CategoriaId == id);
+//    if (categoria != null)
+//    {
+//        dbContext.Categorias.Remove(categoria);
+//        await dbContext.SaveChangesAsync();
+//    }
+//    return;
+//});
 
 
 //delete
-app.MapDelete("/categorias/{id}", async (int id, OlifransDbContext dbContext) =>
+app.MapDelete("/categorias/{id:int}", async (int id, OlifransDbContext dbContext) =>
 {
-    var categoria = await dbContext.Categorias.FirstOrDefaultAsync(a => a.CategoriaId == id);
-    if (categoria != null)
-    {
-        dbContext.Categorias.Remove(categoria);
-        await dbContext.SaveChangesAsync();
-    }
-    return;
+    var categoria = await dbContext.Categorias.FindAsync(id);
+
+    if (categoria != null) 
+        return Results.NotFound();
+
+    dbContext.Categorias.Remove(categoria);
+    await dbContext.SaveChangesAsync();
+    return Results.NoContent();
 });
+
+
 
 
 
