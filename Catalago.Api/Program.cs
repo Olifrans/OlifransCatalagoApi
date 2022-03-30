@@ -1,13 +1,27 @@
+using Catalago.Api.Context;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+// Add services to the container --> Semelhante ao ConfigureServices da class Startup net5
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+
+//Cenexao ao Context BD
+var ConectaBD = builder.Configuration.GetConnectionString("OlifransConnection");
+builder.Services.AddDbContext<OlifransDbContext>(options => options.UseNpgsql(ConectaBD));
+
+
+
+
+
+
+
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline --> Semelhante ao Configure da class Startup net5
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
