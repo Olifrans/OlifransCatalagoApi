@@ -2,12 +2,11 @@ using Catalago.Api.Context;
 using Catalago.Api.Models;
 using Catalago.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-//using capp_api.infrastructure.Security;
-using Microsoft.Extensions.DependencyInjection;
-
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,34 +47,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 
-//Authentication configuration
-builder.Services.AddAuthentication(x =>
-{
-  x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-  x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(x =>
-{
-    x.RequireHttpsMetadata = false;
-    x.SaveToken = true;
-    x.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Cryptography.Key),
-        ValidateIssuer = false,
-        ValidateAudience = false
-    };
-});
 
-
-//Refatorado Francisco --> Authorization configuration
-builder.Services.AddAuthorization(options =>
-{
-    //options.AddPolicy("user", policy => policy.RequireClaim("Store", "user"));
-    //options.AddPolicy("admin", policy => policy.RequireClaim("Store", "admin"));
-    //options.AddPolicy("CompletedTrue", policy => policy.Requirements.Add(new DefaultRequirement(true)));
-    //options.AddPolicy("CompletedFalse", policy => policy.Requirements.Add(new DefaultRequirement(false)));
-});
 
 
 //Cenexao ao Context BD
@@ -84,11 +56,38 @@ builder.Services.AddDbContext<OlifransDbContext>(options => options.UseNpgsql(Co
 
 
 // JWT Json Web Token JwtSecurityTokenHandler
-builder.Services.AddSingleton<ITokenService>(new TokenService());   
+builder.Services.AddSingleton<ITokenService>(new TokenService());
 
+
+
+//Authentication configuration
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        };
+    });
+
+//Authorization configuration
+builder.Services.AddAuthorization();
 
 
 var app = builder.Build();
+
+
+
+
+
+
 
 
 
@@ -97,6 +96,36 @@ var app = builder.Build();
  * 
  * posicao 14:20
  * */
+
+
+//---------------------Endpoints Login
+//post
+app.MapPost("/login", [AllowAnonymous] (UserModel userModel, ITokenService tokenService) =>
+{
+    if (userModel == null)
+    {
+        return Results.BadRequest("Login Inválido");
+    }
+    if (userModel.UserName == "olifrans" && userModel.Password == "Admin@123")
+    {
+        var tokenString = tokenService.GeraToken(app.Configuration["Jwt:Key"],
+            app.Configuration["Jwt:Issuer"],
+            app.Configuration["Jwt:Audience"],
+            userModel);
+       return Results.Ok(new { tokenService = tokenString});
+    }
+    else
+    {
+        return Results.BadRequest("Login Inválido");
+    }    
+})
+    .Produces(StatusCodes.Status400BadRequest)
+    .Produces(StatusCodes.Status200OK)
+    .WithName("LoginAcesso")   
+    .WithTags("Autenticacao");
+    
+    
+  
 
 
 
@@ -109,9 +138,26 @@ app.MapGet("/categoriaprodutos", async (OlifransDbContext dbContext) =>
     .Produces<List<Categoria>>(StatusCodes.Status200OK)
     .WithTags("Categorias");
 
+
+
+
+
+
 //get
-app.MapGet("/categorias", async (OlifransDbContext dbContext) => await dbContext.Categorias.ToListAsync())
-    .WithTags("Categorias");
+app.MapGet("/categorias", async (OlifransDbContext dbContext) => 
+await dbContext.Categorias.ToListAsync())
+    .WithTags("Categorias")
+    .RequireAuthorization();
+
+
+
+
+
+
+
+
+
+
 
 //get id
 app.MapGet("/categorias/{id:int}", async (int id, OlifransDbContext dbContext) =>
@@ -298,7 +344,14 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-//app.UseHttpsRedirection();
+
+//Authentication configuration
+app.UseAuthentication();
+
+//Authorization configuration
+app.UseAuthorization();
+
+
 
 app.Run();
 
