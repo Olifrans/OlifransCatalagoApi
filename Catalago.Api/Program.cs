@@ -1,15 +1,81 @@
 using Catalago.Api.Context;
 using Catalago.Api.Models;
+using Catalago.Api.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-
-
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+//using capp_api.infrastructure.Security;
+using Microsoft.Extensions.DependencyInjection;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container --> Semelhante ao ConfigureServices da class Startup net5
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+
+
+//Swagger teste API
+builder.Services.AddSwaggerGen(c =>
+{
+    //Acesso token login JWT no Swagger
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Cabeçalho de autorização JWT usando o esquema Bearer." +
+        "\r\n\r\n Digite 'Portador' [espaço] e, em seguida, seu token na entrada de texto abaixo." +
+        "\r\n\r\n Exemplo: \"O portador  12345abcdef\"",
+    });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {        
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+           new string[] {}
+        }
+    });
+});
+
+
+//Authentication configuration
+builder.Services.AddAuthentication(x =>
+{
+  x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+  x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(x =>
+{
+    x.RequireHttpsMetadata = false;
+    x.SaveToken = true;
+    x.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Cryptography.Key),
+        ValidateIssuer = false,
+        ValidateAudience = false
+    };
+});
+
+
+//Refatorado Francisco --> Authorization configuration
+builder.Services.AddAuthorization(options =>
+{
+    //options.AddPolicy("user", policy => policy.RequireClaim("Store", "user"));
+    //options.AddPolicy("admin", policy => policy.RequireClaim("Store", "admin"));
+    //options.AddPolicy("CompletedTrue", policy => policy.Requirements.Add(new DefaultRequirement(true)));
+    //options.AddPolicy("CompletedFalse", policy => policy.Requirements.Add(new DefaultRequirement(false)));
+});
 
 
 //Cenexao ao Context BD
@@ -17,6 +83,8 @@ var ConectaBD = builder.Configuration.GetConnectionString("OlifransConnection");
 builder.Services.AddDbContext<OlifransDbContext>(options => options.UseNpgsql(ConectaBD));
 
 
+// JWT Json Web Token JwtSecurityTokenHandler
+builder.Services.AddSingleton<ITokenService>(new TokenService());   
 
 
 
@@ -24,16 +92,15 @@ var app = builder.Build();
 
 
 
-
 /*
  * Continua curso 
- * https://www.youtube.com/watch?v=EF7ZHxBi_08&list=PLJ4k1IC8GhW0GuisO9DvYTkyf99BI9ZZr&index=4
+ * 
  * posicao 14:20
  * */
 
 
 
-//Endpoints Categorias
+//---------------------Endpoints Categorias
 
 //get categorias produto
 app.MapGet("/categoriaprodutos", async (OlifransDbContext dbContext) =>
@@ -42,27 +109,17 @@ app.MapGet("/categoriaprodutos", async (OlifransDbContext dbContext) =>
     .Produces<List<Categoria>>(StatusCodes.Status200OK)
     .WithTags("Categorias");
 
-
-
-
-
 //get
 app.MapGet("/categorias", async (OlifransDbContext dbContext) => await dbContext.Categorias.ToListAsync())
     .WithTags("Categorias");
-
-////get id
-//app.MapGet("/categorias/{id}", async (int id, OlifransDbContext dbContext) =>
-//    await dbContext.Categorias.FirstOrDefaultAsync(a => a.CategoriaId == id));
-
 
 //get id
 app.MapGet("/categorias/{id:int}", async (int id, OlifransDbContext dbContext) =>
 {
     return await dbContext.Categorias.FindAsync(id)
     is Categoria categoria
-                ? Results.Ok(categoria) : Results.NotFound("fffff");
+                ? Results.Ok(categoria) : Results.NotFound("Produto não encontrado");
 }).WithTags("Categorias");
-
 
 //post
 app.MapPost("/categorias", async (Categoria categoria, OlifransDbContext dbContext) =>
@@ -71,8 +128,6 @@ app.MapPost("/categorias", async (Categoria categoria, OlifransDbContext dbConte
     await dbContext.SaveChangesAsync();
     return Results.Created($"/categoria/{categoria.CategoriaId}", categoria);
 }).WithTags("Categorias");
-
-
 
 //put
 app.MapPut("/categorias/{id:int}", async (int id, Categoria categoria, OlifransDbContext dbContext) =>
@@ -90,7 +145,6 @@ app.MapPut("/categorias/{id:int}", async (int id, Categoria categoria, OlifransD
     await dbContext.SaveChangesAsync();
     return Results.Ok(categoriaDoBD);
 }).WithTags("Categorias");
-
 
 //delete
 app.MapDelete("/categorias/{id:int}", async (int id, OlifransDbContext dbContext) =>
@@ -112,23 +166,13 @@ app.MapDelete("/categorias/{id:int}", async (int id, OlifransDbContext dbContext
 
 
 
-
-
-
-
-
-
-
-
-
-
 //---------------------Endpoints Produtos
+
 //get
 app.MapGet("/produtos", async (OlifransDbContext dbContext) =>
     await dbContext.Produtos.ToListAsync())
     .Produces<Produto>(StatusCodes.Status200OK)
     .WithTags("Produtos");
-
 
 //get id
 app.MapGet("/produtos/{id:int}", async (int id, OlifransDbContext dbContext) =>
@@ -141,7 +185,6 @@ app.MapGet("/produtos/{id:int}", async (int id, OlifransDbContext dbContext) =>
     .Produces<Produto>(StatusCodes.Status201Created)
     .Produces(StatusCodes.Status404NotFound)
     .WithTags("Produtos");
-
 
 //get criterio
 app.MapGet("/produtos/nome/{criterio}", async (string criterio, OlifransDbContext dbContext) =>
@@ -160,7 +203,6 @@ app.MapGet("/produtos/nome/{criterio}", async (string criterio, OlifransDbContex
     .WithTags("FiltrarPorNome")
     .WithTags("Produtos");
 
-
 //get paginacao
 app.MapGet("/produtosporpagina", async (int numeroPagina, int tamanhoPagina, OlifransDbContext dbContext)
 
@@ -173,7 +215,6 @@ app.MapGet("/produtosporpagina", async (int numeroPagina, int tamanhoPagina, Oli
     .WithTags("FiltrarPorNome")
     .WithTags("Produtos");
 
-
 //post
 app.MapPost("/produtos", async (Produto produto, OlifransDbContext dbContext) =>
 {
@@ -184,7 +225,6 @@ app.MapPost("/produtos", async (Produto produto, OlifransDbContext dbContext) =>
     .Produces<Produto>(StatusCodes.Status201Created)
     .WithName("CriarNovoProduto")
     .WithTags("Produtos");
-
 
 //put pelo nome
 app.MapPut("/produtos/{nome}", async (int produtoId, string produtoNome, string produtoDescricao, decimal produtoPreco, OlifransDbContext dbContext) =>
@@ -203,7 +243,6 @@ app.MapPut("/produtos/{nome}", async (int produtoId, string produtoNome, string 
     .Produces(StatusCodes.Status404NotFound)
     .WithName("AtualiazarNomeProduto")
     .WithTags("Produtos");
-
 
 //put todos dados
 app.MapPut("/produtos/{id:int}", async (int id, Produto produto, OlifransDbContext dbContext) =>
@@ -233,8 +272,6 @@ app.MapPut("/produtos/{id:int}", async (int id, Produto produto, OlifransDbConte
     .WithName("AtualiazarProduto")
     .WithTags("Produtos");
 
-
-
 //delete
 app.MapDelete("/produtos/{id:int}", async (int id, OlifransDbContext dbContext) =>
 {
@@ -251,9 +288,6 @@ app.MapDelete("/produtos/{id:int}", async (int id, OlifransDbContext dbContext) 
     .Produces(StatusCodes.Status404NotFound)
     .WithName("ExcluirProduto")
     .WithTags("Produtos");
-
-
-
 
 
 
