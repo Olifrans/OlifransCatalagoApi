@@ -1,5 +1,7 @@
+﻿# Markdown File
 
-Comandos: Migrations a database
+
+# Comandos EF Core: Migrations a database no PostgreSQL
 
 dotnet ef migrations add MigracaoInicial
 

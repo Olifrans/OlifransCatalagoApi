@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
+﻿using System.Text.Json.Serialization;
 
 namespace Catalago.Api.Models
 {
@@ -21,6 +16,5 @@ namespace Catalago.Api.Models
 
         [JsonIgnore] //Vai ignorar a propriedade lógica de produto na deserealização
         public Categoria? Categoria { get; set; }
-
     }
 }

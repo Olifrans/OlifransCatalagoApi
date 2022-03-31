@@ -25,11 +25,6 @@ var app = builder.Build();
 
 
 
-
-
-
-
-
 /*
  * Continua curso 
  * https://www.youtube.com/watch?v=EF7ZHxBi_08&list=PLJ4k1IC8GhW0GuisO9DvYTkyf99BI9ZZr&index=4
@@ -39,6 +34,18 @@ var app = builder.Build();
 
 
 //Endpoints Categorias
+
+//get categorias produto
+app.MapGet("/categoriaprodutos", async (OlifransDbContext dbContext) =>
+ await dbContext.Categorias.Include(cp => cp.Produtos).ToListAsync()
+ )
+    .Produces<List<Categoria>>(StatusCodes.Status200OK)
+    .WithTags("Categorias");
+
+
+
+
+
 //get
 app.MapGet("/categorias", async (OlifransDbContext dbContext) => await dbContext.Categorias.ToListAsync())
     .WithTags("Categorias");
@@ -53,7 +60,7 @@ app.MapGet("/categorias/{id:int}", async (int id, OlifransDbContext dbContext) =
 {
     return await dbContext.Categorias.FindAsync(id)
     is Categoria categoria
-                ? Results.Ok(categoria) : Results.NotFound();
+                ? Results.Ok(categoria) : Results.NotFound("fffff");
 }).WithTags("Categorias");
 
 
