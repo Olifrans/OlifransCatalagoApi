@@ -136,6 +136,37 @@ app.MapGet("/produtos/{id:int}", async (int id, OlifransDbContext dbContext) =>
     .WithTags("Produtos");
 
 
+//get criterio
+app.MapGet("/produtos/nome/{criterio}", async (string criterio, OlifransDbContext dbContext) =>
+{
+    var produtosSelecionados = dbContext.Produtos.Where(p => p.Nome
+                                .ToLower()
+                                .Contains(criterio.ToLower()))
+                                .ToList();
+    
+   return produtosSelecionados.Count > 0
+    ? Results.Ok(produtosSelecionados)
+    : Results.NotFound(Array.Empty<Produto>());
+    
+})
+    .Produces<List<Produto>>(StatusCodes.Status200OK)
+    .WithTags("FiltrarPorNome")
+    .WithTags("Produtos");
+
+
+//get paginacao
+app.MapGet("/produtosporpagina", async (int numeroPagina, int tamanhoPagina, OlifransDbContext dbContext)
+
+    => await dbContext.Produtos
+    .Skip((numeroPagina -1) * tamanhoPagina)
+    .Take(tamanhoPagina)
+    .ToListAsync()
+)
+    .Produces<List<Produto>>(StatusCodes.Status200OK)
+    .WithTags("FiltrarPorNome")
+    .WithTags("Produtos");
+
+
 //post
 app.MapPost("/produtos", async (Produto produto, OlifransDbContext dbContext) =>
 {
@@ -149,12 +180,14 @@ app.MapPost("/produtos", async (Produto produto, OlifransDbContext dbContext) =>
 
 
 //put pelo nome
-app.MapPut("/produtos", async (int produtoId, string produtoNome, OlifransDbContext dbContext) =>
+app.MapPut("/produtos/{nome}", async (int produtoId, string produtoNome, string produtoDescricao, decimal produtoPreco, OlifransDbContext dbContext) =>
 {
     var produtoDoBD = dbContext.Produtos.SingleOrDefault(p => p.ProdutoId == produtoId);
     if (produtoDoBD == null) return Results.NotFound("Produto não encontrado");
 
     produtoDoBD.Nome = produtoNome;
+    produtoDoBD.Descricao = produtoDescricao;
+    produtoDoBD.Preco = produtoPreco;
 
     await dbContext.SaveChangesAsync();
     return Results.Ok(produtoDoBD);
@@ -199,7 +232,7 @@ app.MapPut("/produtos/{id:int}", async (int id, Produto produto, OlifransDbConte
 app.MapDelete("/produtos/{id:int}", async (int id, OlifransDbContext dbContext) =>
 {
     var produtoDB = await dbContext.Produtos.FindAsync(id);
-    if (produtoDB != null)
+    if (produtoDB is null)
     {
         return Results.NotFound("Produto não encontrado");
     } 
@@ -209,8 +242,9 @@ app.MapDelete("/produtos/{id:int}", async (int id, OlifransDbContext dbContext) 
 })
     .Produces<Produto>(StatusCodes.Status200OK)
     .Produces(StatusCodes.Status404NotFound)
-    .WithName("DeletaProduto")
+    .WithName("ExcluirProduto")
     .WithTags("Produtos");
+
 
 
 
