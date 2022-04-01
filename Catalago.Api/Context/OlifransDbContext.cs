@@ -12,9 +12,6 @@ namespace Catalago.Api.Context
         public DbSet<Produto> Produtos { get; set; }
         public DbSet<Categoria> Categorias { get; set; }
 
-
-
-
         // Fluent-API--> Reforçando e explicitando, configurando, mapeando propriedades, tipos e relacionamentos
         protected override void OnModelCreating(ModelBuilder mbOptions)
         {

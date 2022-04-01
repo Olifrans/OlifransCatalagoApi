@@ -1,19 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Catalago.Api.Context;
-using Catalago.Api.Models;
+﻿using Catalago.Api.Models;
 using Catalago.Api.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
-
-
-
 
 namespace Catalago.Api.ApiEndpoints
 {
@@ -21,7 +8,7 @@ namespace Catalago.Api.ApiEndpoints
     {
         //---------------------Endpoints Login Autenticacao
         public static void MapAutenticacaoEndpoints(this WebApplication app)
-        {            
+        {
             app.MapPost("/login", [AllowAnonymous] (UserModel userModel, ITokenService tokenService) =>
             {
                 if (userModel == null)
@@ -46,22 +33,5 @@ namespace Catalago.Api.ApiEndpoints
                 .WithName("LoginAcesso")
                 .WithTags("Autenticacao");
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     }
 }

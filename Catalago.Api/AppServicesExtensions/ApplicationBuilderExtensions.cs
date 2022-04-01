@@ -1,6 +1,5 @@
 ﻿namespace Catalago.Api.AppServicesExtensions
 
-
 {
     public static class ApplicationBuilderExtensions
     {
