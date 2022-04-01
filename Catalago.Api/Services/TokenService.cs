@@ -1,12 +1,8 @@
 ﻿using Catalago.Api.Models;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Catalago.Api.Services
 {
@@ -24,10 +20,8 @@ namespace Catalago.Api.Services
             //Gerador de chave no base na chave secreta
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
 
-
             //Especificação da chave de assinatura
             var credential = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
 
             //Assinatura digital e geração do token
             var token = new JwtSecurityToken(
@@ -36,14 +30,12 @@ namespace Catalago.Api.Services
                 claims: claims,
                 expires: DateTime.Now.AddMinutes(20),
                 signingCredentials: credential
-                );            
+                );
 
             //Serealização do tokem compactado retornando uma string
             var tokenHandler = new JwtSecurityTokenHandler();
             var stringToken = tokenHandler.WriteToken(token);
             return stringToken;
-
-
         }
     }
 }
